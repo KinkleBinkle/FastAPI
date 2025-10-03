@@ -1,0 +1,20 @@
+### request to create a book
+POST http://localhost:8000/books
+Content-Type: application/json
+
+{
+    "title": "Book Title",
+    "author": "Book Author"
+}
+
+### request to get all books
+GET http://localhost:8000/books
+Content-Type: application/json
+
+### request to find "Book Author", should return the book created above
+GET http://localhost:8000/books?author=Book%20Author
+Content-Type: application/json
+
+### request to get a book by id, should return the book created above
+GET http://localhost:8000/books/2
+Content-Type: application/json

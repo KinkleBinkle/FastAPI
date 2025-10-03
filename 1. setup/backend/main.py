@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Path
 from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -21,11 +21,30 @@ app = FastAPI(lifespan=lifespan)
 async def read_root():
     return{"message": "Books API - Module 1"}
 
-@app.get("/books", response_model=list[bookResponse])
-async def list_books(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Book))
+@app.get('/books', response_model=List[bookResponse])
+async def list_books(
+    author: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(Book)
+    if author:
+        query = query.where(Book.author == author)
+    result = await db.execute(query)
     books = result.scalars().all()
     return books
+
+@app.get('/books/{book_id}', response_model=bookResponse)
+async def get_book(
+    book_id: int = Path(..., gt=0),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Book).where(Book.id == book_id))
+    book = result.scalar_one_or_none()
+
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    return book
 
 @app.post("/books", response_model=bookResponse)
 async def create_book(book: bookCreate, db: AsyncSession = Depends(get_db)):
