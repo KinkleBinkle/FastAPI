@@ -10,6 +10,11 @@ function App() {
   const [bookId, setBookId] = useState("");
   const [selectedBook, setSelectedBook] = useState(null);
 
+  // For editing
+  const [editId, setEditId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editAuthor, setEditAuthor] = useState("");
+
   // Fetch all books on load
   useEffect(() => {
     fetchBooks();
@@ -90,6 +95,41 @@ function App() {
       .catch((err) => {
         console.error("Error adding book:", err);
         setError("Could not add book");
+      });
+  };
+
+  // PUT /books/{id}
+  const handleUpdateBook = (e) => {
+    e.preventDefault();
+
+    if (!editTitle.trim() || !editAuthor.trim()) {
+      setError("Both title and author are required for update");
+      return;
+    }
+
+    fetch(`http://127.0.0.1:8000/books/${editId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title: editTitle, author: editAuthor }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to update book");
+        }
+        return res.json();
+      })
+      .then((updatedBook) => {
+        setBooks(books.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+        setEditId(null);
+        setEditTitle("");
+        setEditAuthor("");
+        setError("");
+      })
+      .catch((err) => {
+        console.error("Error updating book:", err);
+        setError("Could not update book");
       });
   };
 
@@ -181,12 +221,53 @@ function App() {
       ) : (
         <ul style={{ listStyle: "none", padding: 0 }}>
           {books.map((b) => (
-            <li key={b.id}>
+            <li key={b.id} style={{ marginBottom: "10px" }}>
               <strong>ID:</strong> {b.id} — <strong>Title:</strong> {b.title} —{" "}
               <strong>Author:</strong> {b.author}
+              <button
+                style={{ marginLeft: "10px" }}
+                onClick={() => {
+                  setEditId(b.id);
+                  setEditTitle(b.title);
+                  setEditAuthor(b.author);
+                }}
+              >
+                Edit
+              </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Edit Form */}
+      {editId && (
+        <form onSubmit={handleUpdateBook} style={{ marginTop: "20px" }}>
+          <h3>Update Book (ID: {editId})</h3>
+          <input
+            type="text"
+            placeholder="Edit title"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            style={{ padding: "8px", marginRight: "8px" }}
+          />
+          <input
+            type="text"
+            placeholder="Edit author"
+            value={editAuthor}
+            onChange={(e) => setEditAuthor(e.target.value)}
+            style={{ padding: "8px", marginRight: "8px" }}
+          />
+          <button type="submit" style={{ padding: "8px 16px" }}>
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditId(null)}
+            style={{ padding: "8px 16px", marginLeft: "8px" }}
+          >
+            Cancel
+          </button>
+        </form>
       )}
     </div>
   );

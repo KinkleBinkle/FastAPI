@@ -18,3 +18,12 @@ Content-Type: application/json
 ### request to get a book by id, should return the book created above
 GET http://localhost:8000/books/2
 Content-Type: application/json
+
+### request to update a book by id
+PUT http://localhost:8000/books/2
+Content-Type: application/json
+
+{
+    "title": "Updated Book Title",
+    "author": "Updated Book Author"
+}

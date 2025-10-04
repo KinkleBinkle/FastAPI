@@ -5,7 +5,7 @@ from sqlalchemy import select
 from typing import List, Optional
 from database import engine, get_db
 from models import Base, Book
-from schemas import BookResponse, BookCreate
+from schemas import BookResponse, BookCreate, BookUpdate
 from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
@@ -54,6 +54,25 @@ async def get_book(
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
+
+@app.put('/books/{book_id}', response_model=BookResponse)
+async def update_book(
+    book_id: int,
+    book: BookUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Book).where(Book.id == book_id))
+    existing_book = result.scalar_one_or_none()
+
+    if not existing_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    existing_book.title = book.title
+    existing_book.author = book.author
+    await db.commit()
+    await db.refresh(existing_book)
+    return existing_book
+
 
 @app.post("/books", response_model=BookResponse)
 async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
