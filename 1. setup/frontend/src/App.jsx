@@ -1,58 +1,95 @@
 import { useEffect, useState } from "react";
 
 function App() {
-  const [students, setStudents] = useState([]);
+  const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newName, setNewName] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newAuthor, setNewAuthor] = useState("");
   const [error, setError] = useState("");
+  const [searchAuthor, setSearchAuthor] = useState("");
+  const [bookId, setBookId] = useState("");
+  const [selectedBook, setSelectedBook] = useState(null);
 
-  // Fetch students on page load
+  // Fetch all books on load
   useEffect(() => {
-    fetchStudents();
+    fetchBooks();
   }, []);
 
-  const fetchStudents = () => {
-    fetch("http://127.0.0.1:8000/students")
+  // GET /books
+  const fetchBooks = (author = "") => {
+    setLoading(true);
+    let url = "http://127.0.0.1:8000/books";
+    if (author) {
+      url += `?author=${author}`;
+    }
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        setStudents(data);
+        setBooks(data);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching students:", err);
+        console.error("Error fetching books:", err);
         setLoading(false);
       });
   };
 
-  const handleAddStudent = (e) => {
-    e.preventDefault();
-
-    if (!newName.trim()) {
-      setError("Name is required");
+  // GET /books/{id}
+  const fetchBookById = () => {
+    if (!bookId.trim()) {
+      setError("Enter a valid book ID");
       return;
     }
 
-    fetch("http://127.0.0.1:8000/students", {
+    fetch(`http://127.0.0.1:8000/books/${bookId}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Book not found");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setSelectedBook(data);
+        setError("");
+      })
+      .catch((err) => {
+        console.error("Error fetching book:", err);
+        setError("Could not fetch book");
+      });
+  };
+
+  // POST /books
+  const handleAddBook = (e) => {
+    e.preventDefault();
+
+    if (!newTitle.trim() || !newAuthor.trim()) {
+      setError("Both title and author are required");
+      return;
+    }
+
+    fetch("http://127.0.0.1:8000/books", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: newName }),
+      body: JSON.stringify({ title: newTitle, author: newAuthor }),
     })
       .then((res) => {
         if (!res.ok) {
-          throw new Error("Failed to add student");
+          throw new Error("Failed to add book");
         }
         return res.json();
       })
-      .then((student) => {
-        setStudents([...students, student]); // add to list
-        setNewName(""); // clear input
-        setError(""); // clear error
+      .then((book) => {
+        setBooks([...books, book]);
+        setNewTitle("");
+        setNewAuthor("");
+        setError("");
       })
       .catch((err) => {
-        console.error("Error adding student:", err);
-        setError("Could not add student");
+        console.error("Error adding book:", err);
+        setError("Could not add book");
       });
   };
 
@@ -62,32 +99,91 @@ function App() {
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>Student List</h1>
+      <h1>📚 Book Manager</h1>
 
-      {/* Add Student Form */}
-      <form onSubmit={handleAddStudent} style={{ marginBottom: "20px" }}>
+      {/* Add Book Form */}
+      <form onSubmit={handleAddBook} style={{ marginBottom: "20px" }}>
         <input
           type="text"
-          placeholder="Enter student name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Enter book title"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          style={{ padding: "8px", marginRight: "8px" }}
+        />
+        <input
+          type="text"
+          placeholder="Enter author name"
+          value={newAuthor}
+          onChange={(e) => setNewAuthor(e.target.value)}
           style={{ padding: "8px", marginRight: "8px" }}
         />
         <button type="submit" style={{ padding: "8px 16px" }}>
-          Add Student
+          Add Book
         </button>
       </form>
 
+      {/* Filter by author */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Search by author"
+          value={searchAuthor}
+          onChange={(e) => setSearchAuthor(e.target.value)}
+          style={{ padding: "8px", marginRight: "8px" }}
+        />
+        <button
+          onClick={() => fetchBooks(searchAuthor)}
+          style={{ padding: "8px 16px" }}
+        >
+          Search
+        </button>
+        <button
+          onClick={() => {
+            setSearchAuthor("");
+            fetchBooks();
+          }}
+          style={{ padding: "8px 16px", marginLeft: "8px" }}
+        >
+          Reset
+        </button>
+      </div>
+
+      {/* Fetch book by ID */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="number"
+          placeholder="Enter book ID"
+          value={bookId}
+          onChange={(e) => setBookId(e.target.value)}
+          style={{ padding: "8px", marginRight: "8px" }}
+        />
+        <button onClick={fetchBookById} style={{ padding: "8px 16px" }}>
+          Get Book
+        </button>
+      </div>
+
+      {selectedBook && (
+        <div style={{ marginBottom: "20px", color: "blue" }}>
+          <h3>Book Found:</h3>
+          <p>
+            <strong>ID:</strong> {selectedBook.id} — <strong>Title:</strong>{" "}
+            {selectedBook.title} — <strong>Author:</strong>{" "}
+            {selectedBook.author}
+          </p>
+        </div>
+      )}
+
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {/* Student List */}
-      {students.length === 0 ? (
-        <p>No students found.</p>
+      {/* Book List */}
+      {books.length === 0 ? (
+        <p>No books found.</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0 }}>
-          {students.map((s) => (
-            <li key={s.id}>
-              <strong>ID:</strong> {s.id} — <strong>Name:</strong> {s.name}
+          {books.map((b) => (
+            <li key={b.id}>
+              <strong>ID:</strong> {b.id} — <strong>Title:</strong> {b.title} —{" "}
+              <strong>Author:</strong> {b.author}
             </li>
           ))}
         </ul>

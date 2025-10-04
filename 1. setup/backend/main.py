@@ -5,7 +5,8 @@ from sqlalchemy import select
 from typing import List, Optional
 from database import engine, get_db
 from models import Base, Book
-from schemas import bookResponse, bookCreate
+from schemas import BookResponse, BookCreate
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,11 +18,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# CORS (important for React frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # or ["http://localhost:5173"] if using Vite
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def read_root():
     return{"message": "Books API - Module 1"}
 
-@app.get('/books', response_model=List[bookResponse])
+@app.get('/books', response_model=List[BookResponse])
 async def list_books(
     author: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
@@ -33,7 +43,7 @@ async def list_books(
     books = result.scalars().all()
     return books
 
-@app.get('/books/{book_id}', response_model=bookResponse)
+@app.get('/books/{book_id}', response_model=BookResponse)
 async def get_book(
     book_id: int = Path(..., gt=0),
     db: AsyncSession = Depends(get_db)
@@ -43,11 +53,10 @@ async def get_book(
 
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    
     return book
 
-@app.post("/books", response_model=bookResponse)
-async def create_book(book: bookCreate, db: AsyncSession = Depends(get_db)):
+@app.post("/books", response_model=BookResponse)
+async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
     new_book = Book(title = book.title, author = book.author)
     db.add(new_book)
     await db.commit()

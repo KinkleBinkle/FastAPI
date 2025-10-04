@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
-class bookCreate(BaseModel):
+class BookCreate(BaseModel):
     title: str
     author: str
 
-class bookResponse(bookCreate):
+
+class BookResponse(BookCreate):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # ✅ Pydantic v2 fix for orm_mode

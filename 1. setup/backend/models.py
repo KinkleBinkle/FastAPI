@@ -9,5 +9,4 @@ class Book(Base):
     id = Column(Integer, primary_key = True, index = True)
     title = Column(String, nullable = True)
     author = Column(String, nullable = True)
-    description = Column(String, nullable = True)
 
