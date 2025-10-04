@@ -133,6 +133,25 @@ function App() {
       });
   };
 
+  // DELETE /books/{id}
+  const handleDeleteBook = (id) => {
+    if (!window.confirm("Are you sure you want to delete this book?")) return;
+
+    fetch(`http://127.0.0.1:8000/books/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to delete book");
+        }
+        setBooks(books.filter((b) => b.id !== id));
+      })
+      .catch((err) => {
+        console.error("Error deleting book:", err);
+        setError("Could not delete book");
+      });
+  };
+
   if (loading) {
     return <p style={{ textAlign: "center" }}>Loading...</p>;
   }
@@ -233,6 +252,12 @@ function App() {
                 }}
               >
                 Edit
+              </button>
+              <button
+                style={{ marginLeft: "10px", color: "red" }}
+                onClick={() => handleDeleteBook(b.id)}
+              >
+                Delete
               </button>
             </li>
           ))}

@@ -27,10 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ----------------------------- API Endpoints -----------------------------
+
+# Root endpoint
 @app.get("/")
 async def read_root():
     return{"message": "Books API - Module 1"}
 
+# ----------------------------
+#     GET
+# ----------------------------
 @app.get('/books', response_model=List[BookResponse])
 async def list_books(
     author: Optional[str] = None,
@@ -55,6 +61,23 @@ async def get_book(
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
+# ----------------------------
+#     POST
+# ----------------------------
+
+@app.post("/books", response_model=BookResponse)
+async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
+    new_book = Book(title = book.title, author = book.author)
+    db.add(new_book)
+    await db.commit()
+    await db.refresh(new_book)
+    return new_book
+
+
+# ----------------------------
+#     PUT
+# ----------------------------
+
 @app.put('/books/{book_id}', response_model=BookResponse)
 async def update_book(
     book_id: int,
@@ -73,11 +96,20 @@ async def update_book(
     await db.refresh(existing_book)
     return existing_book
 
+# ----------------------------
+#     DELETE
+# ----------------------------
+@app.delete('/books/{book_id}', status_code=204)
+async def delete_book(
+    book_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Book).where(Book.id == book_id))
+    existing_book = result.scalar_one_or_none()
 
-@app.post("/books", response_model=BookResponse)
-async def create_book(book: BookCreate, db: AsyncSession = Depends(get_db)):
-    new_book = Book(title = book.title, author = book.author)
-    db.add(new_book)
+    if not existing_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    await db.delete(existing_book)
     await db.commit()
-    await db.refresh(new_book)
-    return new_book
+    return None
