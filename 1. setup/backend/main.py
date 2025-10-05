@@ -4,9 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 from database import engine, get_db
-from models import Base, Book
-from schemas import BookResponse, BookCreate, BookUpdate
+from models import Base, Book, Student
+from schemas import BookResponse, BookCreate, BookUpdate, StudentResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import joinedload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -113,3 +114,14 @@ async def delete_book(
     await db.delete(existing_book)
     await db.commit()
     return None
+
+# ----------------------------
+# Students Endpoints
+# ----------------------------
+
+@app.get('/students', response_model=StudentResponse)
+async def list_students(
+    db: AsyncSession = Depends(get_db)
+):
+    students = db.query(Student).options(joinedload(Student.borrowed_books)).all()
+    return students
