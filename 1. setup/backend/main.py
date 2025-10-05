@@ -5,9 +5,11 @@ from sqlalchemy import select
 from typing import List, Optional
 from database import engine, get_db
 from models import Base, Book, Student
-from schemas import BookResponse, BookCreate, BookUpdate, StudentResponse
+from schemas import BookResponse, BookCreate, BookUpdate, StudentResponse, StudentCreate
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -122,7 +124,29 @@ async def delete_book(
 @app.get('/students', response_model=List[StudentResponse])
 async def list_students(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Student).options(joinedload(Student.borrowed_books))
+        select(Student).options(selectinload(Student.borrowed_books))
     )
     students = result.scalars().all()
     return students
+
+@app.get('/students/{student_id}', response_model=StudentResponse)
+async def get_student(
+    student_id: int = Path(..., gt=0),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Student).options(joinedload(Student.borrowed_books)).where(Student.id == student_id)
+    )
+    student = result.scalar_one_or_none()
+
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
+
+@app.post("/students", response_model=StudentResponse)
+async def create_student(student: StudentCreate, db: AsyncSession = Depends(get_db)):
+    new_student = Student(name = student.name, age = student.age)
+    db.add(new_student)
+    await db.commit()
+    await db.refresh(new_student)
+    return new_student
