@@ -119,9 +119,10 @@ async def delete_book(
 # Students Endpoints
 # ----------------------------
 
-@app.get('/students', response_model=StudentResponse)
-async def list_students(
-    db: AsyncSession = Depends(get_db)
-):
-    students = db.query(Student).options(joinedload(Student.borrowed_books)).all()
+@app.get('/students', response_model=List[StudentResponse])
+async def list_students(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Student).options(joinedload(Student.borrowed_books))
+    )
+    students = result.scalars().all()
     return students
