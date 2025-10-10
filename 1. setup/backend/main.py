@@ -134,19 +134,35 @@ async def get_student(
     student_id: int = Path(..., gt=0),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Student).options(joinedload(Student.borrowed_books)).where(Student.id == student_id)
-    )
-    student = result.scalar_one_or_none()
-
-    if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return student
+    try:
+        result = await db.execute(
+            select(Student).options(selectinload(Student.borrowed_books)).where(Student.id == student_id)
+        )
+        student = result.scalar_one_or_none()
+        if student is None:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return student
+    except Exception as e:
+        import traceback
+        print("Error fetching student:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/students", response_model=StudentResponse)
 async def create_student(student: StudentCreate, db: AsyncSession = Depends(get_db)):
-    new_student = Student(name = student.name, age = student.age)
-    db.add(new_student)
-    await db.commit()
-    await db.refresh(new_student)
-    return new_student
+    try:
+        new_student = Student(name=student.name, age=student.age)
+        db.add(new_student)
+        await db.commit()
+        # Eagerly reload with borrowed_books for correct response serialization
+        result = await db.execute(
+            select(Student).options(selectinload(Student.borrowed_books)).where(Student.id == new_student.id)
+        )
+        student_with_books = result.scalar_one()
+        return student_with_books
+    except Exception as e:
+        import traceback
+        print("Error creating student:", e)
+        traceback.print_exc()
+        # Return error details for debugging (remove in production)
+        raise HTTPException(status_code=500, detail=str(e))

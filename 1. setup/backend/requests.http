@@ -38,13 +38,12 @@ Content-Type: application/json
 
 ### request to get specific student by id
 GET http://localhost:8000/students/2
-Content-Type: application/json
 
 ### request to add a student
 POST http://localhost:8000/students
 Content-Type: application/json
 
 {
-    "name": "Ali",
-    "age": 20
+    "name": "Al2i32132",
+    "age": 22022
 }
