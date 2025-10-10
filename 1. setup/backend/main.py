@@ -5,7 +5,7 @@ from sqlalchemy import select
 from typing import List, Optional
 from database import engine, get_db
 from models import Base, Book, Student
-from schemas import BookResponse, BookCreate, BookUpdate, StudentResponse, StudentCreate
+from schemas import BookResponse, BookCreate, BookUpdate, StudentResponse, StudentCreate, StudentUpdate
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -166,3 +166,49 @@ async def create_student(student: StudentCreate, db: AsyncSession = Depends(get_
         traceback.print_exc()
         # Return error details for debugging (remove in production)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/students/{student_id}", response_model=StudentResponse)
+async def update_student(
+        student_id: int,
+        student_update: StudentUpdate,
+        db: AsyncSession = Depends(get_db)
+    ):
+
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    existing_student = result.scalar_one_or_none()
+
+    if not existing_student:
+        raise HTTPException(status=404, detail="Student not found")
+    
+    if student_update.name:
+        existing_student.name = student_update.name
+    if student_update.age:
+        existing_student.age = student_update.age
+
+    await db.commit()
+    await db.refresh(existing_student)
+
+    result = await db.execute(
+        select(Student)
+        .options(selectinload(Student.borrowed_books))
+        .where(Student.id == student_id)
+    )
+
+    update_student = result.scalar_one()
+    return update_student  
+
+
+@app.delete("/students/{student_id}", status_code=204)
+async def delete_student(
+    student_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    existing_student = result.scalar_one_or_none()
+
+    if not existing_student:
+        raise HTTPException(status=404, detail="Student not found")
+    
+    await db.delete(existing_student)
+    await db.commit()
+    return None

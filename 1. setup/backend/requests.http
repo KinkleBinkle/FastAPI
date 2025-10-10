@@ -47,3 +47,16 @@ Content-Type: application/json
     "name": "Al2i32132",
     "age": 22022
 }
+
+### request to update a student by id
+PUT http://localhost:8000/students/2
+Content-Type: application/json
+
+{
+    "name": "Updated Name",
+    "age": 25
+}
+
+### request to delete a student by id
+DELETE http://localhost:8000/students/2 
+Content-Type: application/json
