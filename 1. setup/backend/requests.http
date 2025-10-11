@@ -60,3 +60,16 @@ Content-Type: application/json
 ### request to delete a student by id
 DELETE http://localhost:8000/students/2 
 Content-Type: application/json
+
+### Request to borrow a book
+POST http://localhost:8000/books/borrow
+Content-Type: application/json
+
+{
+    "student_id": 1,
+    "book_id": 1
+}
+
+### Request to check borrowed books for a student
+GET http://localhost:8000/students/1/books
+Content-Type: application/json

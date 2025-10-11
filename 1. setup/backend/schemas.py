@@ -52,3 +52,8 @@ class BookResponseWithBorrower(BookResponse):
     # We need to forward-declare StudentBase to avoid circular import issues
     # if schemas are in the same file. Pydantic handles this.
     borrower: Optional[StudentBase] = None
+
+
+class BorrowRequest(BaseModel):
+    student_id: int
+    book_id: int
